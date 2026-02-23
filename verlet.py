@@ -35,31 +35,42 @@ class NBodies:
         Initialize a system of bodies from a file containing their properties (mass, positionx, positiony, positionz, speedx, speedy, speedz).
         """
         self.collection = bodies_list
+        self.positions = np.array([body.position for body in bodies_list], dtype=np.float64)
+        self.velocities = np.array([body.velocity for body in bodies_list], dtype=np.float64)
+        self.masses = np.array([body.mass for body in bodies_list], dtype=np.float64)
 
-
-    def calculate_accelerations(self, body_i):
+    def calculate_acceleration(self, positions, masses):
         """
         Calculate the gravitational accelerations on each body due to all other bodies.
         """
-        total_acc = np.zeros(3)
-        
-        for body_j in self.collection:
-            if body_j is not body_i: # i != j
-                dist = body_j.distance(body_i)
-                if dist > 1e-10:
-                    diff = body_j.position - body_i.position
-                    total_acc += G * body_j.mass * diff / (dist**3)
+        num_bodies = len(masses)
+        accelerations = np.zeros((num_bodies, 3))
+
+        for i in range(num_bodies):
+            #diff = positions[i] - positions
+            diff = positions - positions[i]
+
+            diff[i] = 0
+            dist = np.linalg.norm(diff, axis=1)
+            mask = dist > 1e-10 # Avoid division by zero for very close bodies
+            accel_components = G * (masses[mask]/(dist[mask]**3))[:, np.newaxis] * diff[mask]
+            accelerations[i] = np.sum(accel_components, axis=0)
                 
-        return total_acc
+        return accelerations
+    
+    def update_position(self, dt):
+        a = self.calculate_acceleration(self.positions, self.masses)
+        self.positions += self.velocities * dt + 0.5 * a * dt * dt
+        a_new = self.calculate_acceleration(self.positions, self.masses)
+        self.velocities += 0.5 * (a + a_new) * dt
 
     def step(self, dt):
         """
         Performs one complete simulation step.
         """
-        for b in self.collection:
-            accel = self.calculate_accelerations(b)
-            b.update(accel, dt)
-        return [body.position for body in self.collection]
+        global system
+        system.update_position(dt)
+        return system.positions
 
 def load_galaxy(filename):
         """
@@ -79,6 +90,7 @@ def load_galaxy(filename):
 if __name__ == "__main__":
 
     galaxy = load_galaxy("data/galaxy_{}".format(sys.argv[2] if len(sys.argv) > 2 else "100"))
+    global system
     system = NBodies(galaxy)
 
     if system:

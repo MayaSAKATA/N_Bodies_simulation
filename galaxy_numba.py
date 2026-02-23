@@ -44,7 +44,7 @@ def step(dt):
     position = new_position
     velocity = new_velocity
     return position
-    
+
 
 def load_galaxy(filename):
     """
