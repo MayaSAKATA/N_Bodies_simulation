@@ -98,6 +98,10 @@ class Visualizer3D:
         self._init_sdl()
         self._init_opengl()
         self._init_vbo()
+
+        self.fps_last = sdl2.SDL_GetTicks()
+        self.fps_frames = 0
+
     
     def _init_sdl(self):
         """
@@ -373,6 +377,17 @@ class Visualizer3D:
             t2 = sdl2.SDL_GetTicks()
             print(f"Frame time: {t2 - t1} ms", end='\r')
             t1 = t2
+
+            # FPS counter
+            self.fps_frames += 1
+            now = sdl2.SDL_GetTicks()
+            if now - self.fps_last >= 1000:  # 1 seconde
+                fps = self.fps_frames * 1000 / (now - self.fps_last)
+                print(f"FPS: {fps:.2f}          ")
+                self.fps_frames = 0
+                self.fps_last = now
+
+
         # Nettoyage
         self.cleanup()
     
