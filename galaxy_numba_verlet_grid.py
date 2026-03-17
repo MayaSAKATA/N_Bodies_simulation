@@ -9,6 +9,39 @@ import numba
 
 G = 1.560339e-13 # Gravitationnal constant
 
+def grid_matrice_crs(position): 
+    """
+    objectif : avoir 2 listes : une qui compte le combre d'etoiles qu'il y a dans les cases d'avant pour chaque case 
+    une qui organise les etoiles dans l'ordre des cases
+    position est la liste des positions des etoiles, position [0][id] est la position_x de l'etoile id 
+
+    """
+
+    aux = np.empty(400) #20x20=400 cases 
+    beg_cases = np.empty(400) #20x20=400 cases
+    for i in range(len(position[0])): 
+        indice_colonne = min(int(position[i][0]/square_size[0]),19) #min pour eviter les erreurs d'indice si une etoile se trouve a la limite de la grille
+        indice_ligne = min(int(position[i][1]/square_size[1]),19)
+        place = indice_ligne*20 + indice_colonne #sligne_indice*20 pour compter le nombre de cases dans les lignes au dessus et + indice_colonne pour decaler l'etoile dans la bonne colonne de la ligne 
+        aux[place] += 1
+
+        beg_cases = np.cumsum(aux)
+        
+    aux2 : np.empty(400) 
+    tab = np.empty(len(position[0]))
+    for i in range(len(position[0])): 
+        indice_colonne = min(int(position[i][0]/square_size[0]),19)
+        indice_ligne = min(int(position[i][1]/square_size[1]),19)
+        place = indice_ligne*20 + indice_colonne
+        if place == 0 : 
+            place_finale = aux2[place]
+        else : 
+            place_finale = aux2[place] + beg_cases[place-1]
+        tab[place_finale] = i
+        aux2[place] += 1
+    return beg_cases, tab 
+
+
 def initialize_grid(position):
     """
     Initialize the global variable square_size and radius of the square
