@@ -46,16 +46,6 @@ def center_gravity(positions, mass):
     Calculate the center of gravity of a set of stars.
     """
     total_mass = np.sum(mass)
-    # center_of_mass_x = 0.0
-    # center_of_mass_y = 0.0
-    # center_of_mass_z = 0.0
-    # for x,m in zip(positions[0], mass):
-    #     center_of_mass_x += x*m
-    # for y,m in zip(positions[1], mass):
-    #     center_of_mass_y += y*m 
-    # for z,m in zip(positions[2], mass):
-    #     center_of_mass_z += z*m
-
 
     center_of_mass_x = np.sum([x*m for x,m in zip(positions[0, :], mass)])
     center_of_mass_y = np.sum([y*m for y,m in zip(positions[1, :], mass)])
@@ -82,18 +72,8 @@ def calculate_acceleration(positions, mass):
         acc = np.zeros(3)
         for key, indices in grid.items():
             for id in indices :
-                print(id)
-                print(positions[:, 1])
-
-                print("positions shape:", np.array(positions[0]).shape)
-                print("mass shape:", np.array(mass).shape)
-                print("positions[0]:", positions[0], type(positions[0]))
-                print("mass:", mass, type(mass))
-
-
-                center_mass, total_mass = center_gravity(positions[id, :], mass[id])
+                center_mass, total_mass = center_gravity(positions, mass)
                 pos = positions[id, :] # positions de l'etoile id
-                print(pos)
                 dist = distance.euclidean(center_mass, pos)
 
                 if 0.5 * dist > radius :
@@ -158,17 +138,14 @@ if __name__ == "__main__":
     
     square_size, radius = initialize_grid(positions)
 
-
-    print(f"positions shape: {positions.shape}")
-
     dt = float(sys.argv[1]) if len(sys.argv) > 1 else 1e-2
 
-    # Time the execution of 10 steps
-    # start_time = time.time()
-    # for _ in range(10):
-    #     step(dt)
-    # end_time = time.time()
-    # print(f"Time for 10 steps ({len(mass)} bodies): {end_time - start_time:.4f} seconds\n")
+    #Time the execution of 10 steps
+    start_time = time.time()
+    for _ in range(10):
+        step(dt)
+    end_time = time.time()
+    print(f"Time for 10 steps ({len(mass)} bodies): {end_time - start_time:.4f} seconds\n")
     
     # Visualization
     luminosities = np.ones(len(positions), dtype=np.float32)
