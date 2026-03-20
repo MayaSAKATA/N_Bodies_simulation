@@ -9,6 +9,50 @@ import numba
 
 G = 1.560339e-13 # Gravitationnal constant
 
+def grid_matrice_crs(position): 
+    """
+    oal: Generate two lists: 
+    1. One that stores the cumulative star counts (offsets) for each grid cell.
+    2. One that stores the star IDs sorted by their grid cell order.
+    
+    'position' is a list of star coordinates, where position[id][0] is the x-coordinate of star 'id'.
+
+    """
+
+    global square_size
+
+    aux = np.zeros(400, dtype=int) #Counts the number of stars in each cell (20x20 = 400 cells) 
+    beg_cases = np.zeros(401, dtype=int) #Stores the starting index of each cell in the 'tab' array
+    for i in range(len(position)): 
+        #min() prevents index errors if a star is exactly on the grid boundary
+        indice_colonne = min(int(position[i][0]/square_size[0]),19) 
+        indice_ligne = min(int(position[i][1]/square_size[1]),19)
+        place = indice_ligne*20 + indice_colonne 
+        aux[place] += 1
+
+    # beg_cases[0] = 0
+    # beg_cases[1] = number of stars in cell 0
+    # beg_cases[2] = total stars in cells 0 and 1...
+    beg_cases[1:] = np.cumsum(aux) 
+
+    aux2 = np.zeros(400, dtype=int) 
+    #Stores star IDs sorted by grid cell order
+    tab = np.zeros(len(position), dtype=int)
+    for i in range(len(position)): 
+        indice_colonne = min(int(position[i][0]/square_size[0]),19)
+        indice_ligne = min(int(position[i][1]/square_size[1]),19)
+        place = indice_ligne*20 + indice_colonne
+        if place == 0 : 
+            place_finale = aux2[place]
+        else : 
+            place_finale = aux2[place] + beg_cases[place]
+        tab[place_finale] = i 
+        aux2[place] += 1
+
+
+    return beg_cases, tab
+
+
 def initialize_grid(position):
     """
     Initialize the global variable square_size and radius of the square
