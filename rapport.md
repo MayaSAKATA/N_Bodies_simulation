@@ -50,3 +50,10 @@ Pour 4 coeurs seulement, il y a déjà un réduction importante du temps de calc
 
 Lorsqu'on essaye différents pas de temps, on remarque que pour les pas de temps trop grands (0.1 par exemple), la simulation est instable. Certaines planètes sortent complètement de la galaxie par exemple. Pour des pas de temps plus petit, on obtient des résultats plus cohérents, les mouvements sont stables et les orbites plus réalistes. Cette différence s'explique par le fait que la méthode d'Euler est instable pour des pas de temps trop grand, l'erreur locale s'accumule à chaque itération ce qui rend la simulation fausse physiquement.
 
+
+## Quatrième version : Verlet
+Dans cette version, on crée une grille et on assigne chaque étoile au morceau de la grille auquelle elle appartient. Pour chaque cellule d'une grille, on calcule son centre de gravité. L'idée de cette méthode est de rendre plus rapide les calculs d'accélération si une étoile est trop éloigné de l'étoile qu'on étudie en remplacant un groupe d'étoiles lointaines par leur centre de masse. Le critère exact est *si 0.5 * dist > radius* , (avec *dist* la distance euclidienne entre l'étoile étudié et le centre de gravité et *radius* le rayon d'une cellule) alors on calcule l'accélération par rapport au centre de gravité de la cellule concernée. Si le critère n'est pas satisfait alors on calcule l'accélération comme dans les versions précédentes. En faisant cela, on réduit fortement la complexité de la fonction *calculate_accelerations* car chaque étoile n'interagit plus avec chacune des autres étoiles. Le temps d'exécution général du code est donc réduit ce qui permet de générer des galaxies de taille plus grande.
+
+**donner valeurs temps**
+
+## Cinquième version : Verlet avec Numba
