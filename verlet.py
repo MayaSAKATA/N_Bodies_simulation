@@ -1,116 +1,150 @@
 import numpy as np
+from scipy.spatial import distance
 import time
 from galaxy_generator import generate_star_color
 from visualizer3d_vbo import Visualizer3D
 import sys
 
-G = 1.560339e-13 # Gravitationnal constant
-class Body:
-    def __init__(self, mass, position, velocity):
-        self.mass = mass
-        self.position = np.array(position, dtype=np.float64)
-        self.velocity = np.array(velocity, dtype=np.float64)
-        self.color = generate_star_color(mass)
+G = 1.560339e-13  # Gravitationnal constant
 
-    def __str__(self):
-        return f"Mass: {self.mass}, Position: {self.position}, Velocity: {self.velocity}, Color: {self.color}"
-    
-    def distance(self, other):
-        diff = self.position - other.position
-        return np.linalg.norm(diff)
-    
-    def update(self, acceleration, dt):
-        """
-        Updates position and velocity using the provided formulas:
-        p(t+dt) = p(t) + dt*v(t) + 0.5 * dt^2 * a(t)
-        v(t+dt) = v(t) + dt * a(t)
-        """
-        self.position += self.velocity * dt + 0.5 * acceleration * dt**2
-        self.velocity += acceleration * dt
-    
-class NBodies:
 
-    def __init__(self, bodies_list):
-        """
-        Initialize a system of bodies from a file containing their properties (mass, positionx, positiony, positionz, speedx, speedy, speedz).
-        """
-        self.collection = bodies_list
-        self.positions = np.array([body.position for body in bodies_list], dtype=np.float64)
-        self.velocities = np.array([body.velocity for body in bodies_list], dtype=np.float64)
-        self.masses = np.array([body.mass for body in bodies_list], dtype=np.float64)
+def initialize_grid(positions):
+    '''
+    Initialize the global variable square_size and radius of the square
+    '''
+    global square_size, radius
+    size_x = positions[:, 0].max() - positions[:, 0].min()
+    size_y = positions[:, 1].max() - positions[:, 1].min()
+    size_z = positions[:, 2].max() - positions[:, 2].min()
 
-    def calculate_acceleration(self, positions, masses):
-        """
-        Calculate the gravitational accelerations on each body due to all other bodies.
-        """
-        num_bodies = len(masses)
-        accelerations = np.zeros((num_bodies, 3))
+    square_size = np.array([size_x, size_y, size_z]) * 1.05 / 20
+    radius = np.sqrt(size_x**2 + size_y**2 + size_z**2)
+    return square_size, radius
 
-        for i in range(num_bodies):
-            #diff = positions[i] - positions
-            diff = positions - positions[i]
 
-            diff[i] = 0
-            dist = np.linalg.norm(diff, axis=1)
-            mask = dist > 1e-10 # Avoid division by zero for very close bodies
-            accel_components = G * (masses[mask]/(dist[mask]**3))[:, np.newaxis] * diff[mask]
-            accelerations[i] = np.sum(accel_components, axis=0)
-                
-        return accelerations
-    
-    def update_position(self, dt):
-        a = self.calculate_acceleration(self.positions, self.masses)
-        self.positions += self.velocities * dt + 0.5 * a * dt * dt
-        a_new = self.calculate_acceleration(self.positions, self.masses)
-        self.velocities += 0.5 * (a + a_new) * dt
+def assign_to_grid(positions):
+    '''
+    Assign each star to a grid square : grid = {(grid_x, grid_y): [index1, index2, ...}
+    For each square coordinates (grid_x, grid_y) we have a list of idx of stars
+    '''
+    global square_size
+    grid = {}
 
-    def step(self, dt):
-        """
-        Performs one complete simulation step.
-        """
-        global system
-        system.update_position(dt)
-        return system.positions
+    for i, pos in enumerate(positions):
+        gx = int(pos[0] // square_size[0])
+        gy = int(pos[1] // square_size[1])
+        gz = int(pos[2] // square_size[2])
+        key = (gx, gy, gz)
+
+        if key not in grid:
+            grid[key] = []
+        grid[key].append(i)
+
+    return grid
+
+
+def center_gravity(positions, mass):
+    '''
+    Calculate the center of gravity of a set of stars.
+    '''
+    total_mass = mass.sum()
+    cx = np.sum(positions[:, 0] * mass) / total_mass
+    cy = np.sum(positions[:, 1] * mass) / total_mass
+    cz = np.sum(positions[:, 2] * mass) / total_mass
+    return np.array([cx, cy, cz]), total_mass
+
+
+def calculate_acceleration(positions, mass):
+    '''
+    Calculate the gravitational accelerations on each body due to all other bodies.
+    '''
+    global radius
+
+    n = len(positions)
+    accelerations = np.zeros((n, 3))
+
+    # Calculer une seule fois
+    grid = assign_to_grid(positions)
+    cg, total_mass = center_gravity(positions, mass)
+
+    for i in range(n):
+        acc = np.zeros(3)
+
+        for key, indices in grid.items():
+            # Distance entre centre de masse et la cellule
+            dist = distance.euclidean(cg, positions[i])
+
+            # Approximation Barnes-Hut
+            if 0.5 * dist > radius :
+                diff = cg - positions[i]
+                d = np.linalg.norm(diff)
+                if d > 1e-10:
+                    acc += G * total_mass * diff / (d**3)
+
+            else:
+                for j in indices:
+                    if i == j:
+                        continue
+                    diff = positions[j] - positions[i]
+                    d = np.linalg.norm(diff)
+                    if d > 1e-10:
+                        acc += G * mass[j] * diff / (d**3)
+
+        accelerations[i] = acc
+
+    return accelerations
+
+
+def step(dt):
+    '''
+    Update the positions and velocities of all stars using the Verlet integration method.
+    '''
+    global positions, velocity, mass
+    acc = calculate_acceleration(positions, mass)
+
+    new_positions = positions + velocity * dt + 0.5 * acc * dt**2
+    new_acc = calculate_acceleration(new_positions, mass)
+    new_velocity = velocity + 0.5 * (acc + new_acc) * dt
+
+    positions = new_positions
+    velocity = new_velocity
+    return positions
+
 
 def load_galaxy(filename):
-        """
-        Load a system of bodies from a file like (mass, positionx, positiony, positionz, speedx, speedy, speedz)
-        """
-        bodies = []
-        with open(filename, 'r') as file:
-            for line in file:
-                data = list(map(float, line.split()))
-                mass = data[0]
-                position = data[1:4]
-                speed = data[4:7]
-                body = Body(mass, position, speed)
-                bodies.append(body)
-        return bodies
+    '''
+    Load a system of stars from a file like (mass, positionx, positiony, positionz, velocityx, velocityy, velocityz)
+    '''
+    positions, velocity, color, mass = [], [], [], []
+
+    with open(filename, 'r') as file:
+        for line in file:
+            data = list(map(float, line.split()))
+            positions.append(data[1:4])
+            velocity.append(data[4:7])
+            color.append(generate_star_color(data[0]))
+            mass.append(data[0])
+
+    return np.array(positions), np.array(velocity), np.array(mass), np.array(color)
+
 
 if __name__ == "__main__":
+    global positions, velocity, mass, color, square_size, radius
 
-    galaxy = load_galaxy("data/galaxy_{}".format(sys.argv[2] if len(sys.argv) > 2 else "100"))
-    global system
-    system = NBodies(galaxy)
+    positions, velocity, mass, color = load_galaxy(f"data/galaxy_{sys.argv[2] if len(sys.argv) > 2 else '100'}")
 
-    if system:
-        if len(sys.argv) > 1:
-            dt = float(sys.argv[1])
-        else :
-            dt = 1e-2  # Time step in years
-        
-        start_time = time.time()
-        for _ in range(10):
-            system.step(dt)
-        end_time = time.time()
-        
-        print(f"Time for 10 steps ({len(system.collection)} bodies): {end_time - start_time:.4f} seconds")
-    
-    # Visualization
-    points = np.array([body.position for body in system.collection])
-    colors = np.array([body.color for body in system.collection])
-    luminosities = np.ones(len(system.collection), dtype=np.float32)
+    square_size, radius = initialize_grid(positions)
+    dt = float(sys.argv[1]) if len(sys.argv) > 1 else 1e-2
+
+    start = time.time()
+    for _ in range(10):
+        step(dt)
+    end = time.time()
+
+    print(f"Time for 10 steps ({len(mass)} bodies): {end - start:.4f} seconds")
+
+    luminosities = np.ones(len(positions), dtype=np.float32)
     bounds = ((-3, 3), (-3, 3), (-3, 3))
 
-    visualizer = Visualizer3D(points, colors, luminosities, bounds)
-    visualizer.run(updater=system.step, dt=dt)
+    visualizer = Visualizer3D(positions, color, luminosities, bounds)
+    visualizer.run(updater=step, dt=dt)
