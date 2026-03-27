@@ -41,8 +41,13 @@ def step(dt):
     Updates the all the positions in the system after a time step dt.
     """
     global position, velocity, mass
+<<<<<<< HEAD
     new_position, new_velocity = calculate_acceleration(position, velocity, mass, dt)
     # upater doesn't edit variables, returns new values
+=======
+    new_position, new_velocity = calculate_acceleration(position, velocity, mass)
+    # updater doesn't edit variables, returns new values
+>>>>>>> bbe5a6b003b98aaada5eb5c37c66b696ee9768d2
     position = new_position
     velocity = new_velocity
     return position
