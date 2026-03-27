@@ -1,8 +1,14 @@
 # **Projet Python : génération d'une galaxie** <br><br> Maya Sakata, Coline Palefroy, Maelle Rouvray
 
 Ce projet vise à simuler une galaxie à N corps mis en mouvement par la gravité.  
-Pour exécuter les codes, on tape la commande : *python&nbsp;&nbsp;&nbsp;nom_du_fichier&nbsp;&nbsp;pas_de_temps&nbsp;&nbsp;taille_galaxie*.  
-Par défaut *pas_de_temps = 1e-2* et *taille_galaxie = 100*.
+Pour exécuter les codes :
+
+```bash
+python nom_du_fichier pas_de_temps taille_galaxie
+```
+
+Par défaut :
+*pas_de_temps = 1e-2* et *taille_galaxie = 100*.
 
 ## Première version : programmation naïve
 
@@ -14,18 +20,18 @@ Temps de calcul et nombre de frame par seconde en fonction du nombre de corps :
 | Nombre de corps | 100 | 500 | 1000 | 2500 |
 | --- | --- | --- | --- | --- |
 | Temps de calcul | 1.42 s | 36.39 s | 143.05 s | 914.91 s |
-| Nombre de frame par secondes | 5.63 | 0.27 | 0.07 | 0.01 |
+| Nombre de frame par seconde | 5.63 | 0.27 | 0.07 | 0.01 |
 
 ## Deuxième version : vectorisation
 
-Dans cette deuxième version, on vectorise les calculs afin d'accélérer le temps de calcul. Pour cela, on défini trois tableaux, contenant la position de tous les corps, la vitesse de tous les corps et la couleur de tous les corps. Un corps sera maintenant défini par son indice dans ces trois tableaux. On exécute le code *galaxy_vectorized.py* avec dt=0.01 .
+Dans cette deuxième version, on vectorise les calculs afin d'accélérer le temps de calcul. Pour cela, on défini trois tableaux contenant : la position de tous les corps, la vitesse de tous les corps et la couleur de tous les corps. Un corps sera maintenant défini par son indice dans ces trois tableaux. On exécute le code *galaxy_vectorized.py* avec dt=0.01 .
 
 Temps de calcul et nombre de frame par seconde en fonction du nombre de corps :
 
 | Nombre de corps | 100 | 500 | 1000 | 2500 |
 | --- | --- | --- | --- | ---- |
 | Temps de calcul | 0.0168 s | 0.4740 s | 1.8783 s | 11.2770 s |
-| Nombre de frame par secondes | 25 | 11 | 4 | 0.8 |
+| Nombre de frame par seconde | 25 | 11 | 4 | 0.8 |
 
 On remarque que la version vectorisée est beaucoup plus rapide (presque 100x plus) que la première version avec les classes. Cela nous permet donc de générer des galaxies avec un nombre d'étoiles important tout en ayant un temps de calcul convenable.
 
@@ -34,32 +40,36 @@ On remarque que la version vectorisée est beaucoup plus rapide (presque 100x pl
 On va maintenant utiliser numba qui va permettre des gains de performance significatifs par rapport aux versions précédentes.
 Pour comparer cela, on mesure le temps d'exécution des fonctions *calculate_acceleration*, *step* et *load_galaxy* sans utiliser numba. On réalise le calcul pour un pas de temps 0.01 et 2500 corps. Les résultats sont :
 
-- *calculate_acceleration* : 73.8397 s
-- *step* : 73.1246 s
-- *load_galaxy* : 0.0200 s
+| Fonction | Temps d'exécution |
+| --- | --- |
+| *calculate_acceleration* | 73.8397 s |
+| *step* | 73.1246 s |
+| *load_galaxy* | 0.0200 s |
 
-Les temps étant très élevés, on ajoute numba avec le décorateur *njit* qui permet d'optimiser les routines ayant un temps de calcul important. On prends encore un pas de temps dt=0.01 et 2500 corps. Les résultats deviennent :
+Les temps d'exécution étant très élevés, on ajoute numba avec le décorateur *njit* qui permet d'optimiser les routines ayant un temps de calcul important. On prends encore un pas de temps dt=0.01 et 2500 corps. Les résultats deviennent :
 
-- *calculate_acceleration* : 1.4749 s
-- *step* : 1.5534 s
-- *load_galaxy* : 0.0576 s
+| Fonction | Temps d'exécution |
+| --- | --- |
+| *calculate_acceleration* | 1.4749 s |
+| *step* | 1.5534 s |
+| *load_galaxy* | 0.0576 s |
 
 Il y a donc une réduction très significative du temps de calcul pour ces différentes fonctions ce qui rend l'exécution totale du code bien plus rapide et permet de générer des galaxies avec un nombre beaucoup plus élevé d'étoiles.
 
-Pour avoir encore mieux, il est possible de paralléliser le code tout en utilisant numba avec le ligne *@numba.njit(parallel=True)* et la fonction *prange*. On mesure à nouveau le temps de chaque fonctions avec dt=0.01 et 2500 corps. Le nombre de coeurs peut aussi être modifié avec *$env:NUMBA_NUM_THREADS=8* par exemple pour 8 coeurs.
+Pour avoir un résultat encore meilleur, il est possible de paralléliser le code tout en utilisant numba avec le ligne *@numba.njit(parallel=True)* et la fonction *prange*. On mesure à nouveau le temps de chaque fonctions avec dt=0.01 et 2500 corps. Le nombre de coeurs peut aussi être modifié avec *$env:NUMBA_NUM_THREADS=8* par exemple pour 8 coeurs.
 
-| Nombre de coeurs        | 4        | 8        | 16       |
-|-------------------------|----------|----------|----------|
-| *calculate_acceleration*  | 0.2841 s | 0.1705 s | 0.1487 s |
-| *step*                    | 0.2453 s | 0.1713 s | 0.0889 s |
-| *load_galaxy*             | 0.0552 s | 0.0875 s | 0.0709 s |
+| Nombre de coeurs | 4 | 8 | 16 |
+| --- | --- | --- | --- |
+| *calculate_acceleration* | 0.2841 s | 0.1705 s | 0.1487 s |
+| *step* | 0.2453 s | 0.1713 s | 0.0889 s |
+| *load_galaxy* | 0.0552 s | 0.0875 s | 0.0709 s |
 
-Pour 4 coeurs seulement, il y a déjà un réduction importante du temps de calcul par rapport à la version non parallèle. En ajoutant des coeurs, les résulats sont encore plus rapides, cependant il n'est pas nécessaire d'en rajouter trop, surtout si le nombre de corps de la galaxie n'est pas si important.
+Pour 4 coeurs seulement, il y a déjà une réduction importante du temps de calcul par rapport à la version non parallèle. En augmentant le nombre de coeurs, les temps sont encore plus rapides. En revanche, il n'est pas nécessaire d'en ajouter trop, surtout si le nombre de corps de la galaxie n'est pas si important.
 
-
-Lorsqu'on essaye différents pas de temps, on remarque que pour les pas de temps trop grands (0.1 par exemple), la simulation est instable. Certaines planètes sortent complètement de la galaxie par exemple. Pour des pas de temps plus petit, on obtient des résultats plus cohérents, les mouvements sont stables et les orbites plus réalistes. Cette différence s'explique par le fait que la méthode d'Euler est instable pour des pas de temps trop grand, l'erreur locale s'accumule à chaque itération ce qui rend la simulation fausse physiquement.
+Lorsqu'on essaye différents pas de temps, on remarque que pour les pas de temps trop grands (0.1 par exemple), la simulation est instable (certaines planètes sortent complètement de la galaxie). Pour des pas de temps plus petits, on obtient des résultats plus cohérents : les mouvements sont stables et les orbites plus réalistes. Cette différence s'explique par le fait que la méthode d'Euler est instable pour des pas de temps trop grand, l'erreur locale s'accumule à chaque itération ce qui rend la simulation fausse physiquement.
 
 ## Quatrième veersion : Rung-Kutta ordre 4 (RK4)
+
 On essaye une version qui remplace la méthode d'Euler pour la mise à jour des vitesse et des positions par la méthode RK4.
 
 Temps de calcul et nombre de frame par seconde en fonction du nombre de corps :
@@ -71,29 +81,31 @@ Temps de calcul et nombre de frame par seconde en fonction du nombre de corps :
 
 Les temps de calculs sont réduits par rapport à la version avec Euler, cependant cette méthode ne conserve pas l'énergie du système. Les étoiles peuvent donc parfois prendre des trajectoire inattendues.
 
-
 ## Cinquième version : Verlet et cas des étoiles lointaines
+
 Dans cette version, on commence par remplacer la mise à jour des vitesses et des positions par la méthode d'intégration de Verlet qui rend la simulation plus stable et précise tout en conservant l'énergie ce qui n'était pas le cas du schéma précédent qui était de type Euler.
 
-Puis pour rendre plus rapide les calculs d'accélération, on décide d'une règle de calcul si une étoile est trop éloigné de l'étoile qu'on étudie (approximation de Barnes-Hut). Pour cela, on crée une grille et on assigne chaque étoile au morceau de la grille auquelle elle appartient, puis pour chaque cellule de la grille, on calcule son centre de gravité. L'idée de cette règle est de remplacer une étoile par le groupe d'étoile auquelle elle appartient. Le critère exact est *si 0.5 * dist > radius* , (avec *dist* la distance euclidienne entre l'étoile étudié et le centre de gravité et *radius* le rayon d'une cellule) alors on calcule l'accélération par rapport au centre de gravité de la cellule concernée. Si le critère n'est pas satisfait alors on calcule l'accélération comme dans les versions précédentes. En faisant cela, on réduit fortement la complexité de la fonction *calculate_accelerations* car chaque étoile n'interagit plus avec chacune des autres étoiles. 
+Pour rendre plus rapide les calculs d'accélération, on met en place une règle de calcul dans le cas où une étoile est trop éloignée de l'étoile qu'on étudie (approximation de Barnes-Hut). Pour cela, on crée une grille et on assigne chaque étoile au morceau de la grille auquelle elle appartient, puis pour chaque cellule de la grille, on calcule son centre de gravité. L'idée de cette règle est de remplacer une étoile par le groupe d'étoile auquelle elle appartient. Le critère exact est
+*si dist * 0.5 > radius* , (avec *dist* la distance euclidienne entre l'étoile étudiée et le centre de gravité et *radius* le rayon d'une cellule) alors on calcule l'accélération par rapport au centre de gravité de la cellule concernée. Si le critère n'est pas satisfait, alors on calcule l'accélération comme dans les versions précédentes. En faisant cela, on réduit fortement la complexité de la fonction *calculate_accelerations* car chaque étoile n'interagit plus avec chacune des autres étoiles.
 
 Temps de calcul et nombre de frame par seconde en fonction du nombre de corps :
 
 | Nombre de corps | 100 | 500 | 1000 | 2500 |
 | --- | --- | --- | --- | ---- |
-| Temps de calcul | 2.8896 s | 69.272 s |  246.96 s |  1399.7s |
+| Temps de calcul | 2.8896 s | 69.272 s | 246.96 s | 1399.7s |
 | Nombre de frame par secondes | 3 | 0.14 | 0.04 | 0.01 |
 
-On remarque que les temps de calcul sont très élevés et proche de ceux trouvés avec la première version. Pour améliorer cela, on va ajouter numba. 
+On remarque que les temps de calcul sont très élevés et proche de ceux trouvés avec la première version. Pour améliorer cela, on va ajouter numba.
 
-## Sixième version : Barnes-Hut
-Dans cette version, on ajoute numba pour accélérer le programme précédent. Cependant, numba ne comprend pas certains types comme les dictionnaires qui ont été utilisés pour assigner chaque étoiles à une cellule de la grille. On crée donc une nouvelle fonction basée sur une matrice CRS qui crée deux listes : la première contient l'indice où commencent les étoiles d'une cellule de la grille, pour chaque cellule ; la seconde contient la liste des indices des étoiles triées par ordre de cellule.
+## Sixième et dernière version : Barnes-Hut
+
+Dans cette version, on ajoute numba pour accélérer le programme précédent. Cependant, numba ne comprend pas certains types comme les dictionnaires qui ont été utilisés pour assigner chaque étoile à une cellule de la grille. On crée donc une nouvelle fonction basée sur une matrice CRS qui crée deux listes : la première contient l'indice où commencent les étoiles d'une cellule de la grille, pour chaque cellule ; la seconde contient la liste des indices des étoiles triées par ordre de cellule.
 
 Temps de calcul et nombre de frame par seconde en fonction du nombre de corps :
 
 | Nombre de corps | 100 | 500 | 1000 | 2500 |
 | --- | --- | --- | --- | ---- |
-| Temps de calcul | 7.2000 s | 7.3441 s |  7.4644 s |  7.8475 s |
+| Temps de calcul | 7.2000 s | 7.3441 s | 7.4644 s | 7.8475 s |
 | Nombre de frame par secondes | 60 | 59 | 59 | 27 |
 
-On remarque que le temps d'exécution est bien plus faible pour les grandes galaxies et varie peut quand le nnombre d'étoiles augmente. Cela permet de générer des galaxies de très grande taille en un temps raisonnable. 
+On remarque que le temps d'exécution est bien plus faible pour les grandes galaxies et varie peut quand le nombre d'étoiles augmente. Cela permet de générer des galaxies de très grande taille en un temps raisonnable.
