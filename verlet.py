@@ -9,9 +9,9 @@ G = 1.560339e-13  # Gravitationnal constant
 
 
 def initialize_grid(positions):
-    '''
+    """
     Initialize the global variable square_size and radius of the square
-    '''
+    """
     global square_size, radius
     size_x = positions[:, 0].max() - positions[:, 0].min()
     size_y = positions[:, 1].max() - positions[:, 1].min()
@@ -23,10 +23,10 @@ def initialize_grid(positions):
 
 
 def assign_to_grid(positions):
-    '''
+    """
     Assign each star to a grid square : grid = {(grid_x, grid_y): [index1, index2, ...}
     For each square coordinates (grid_x, grid_y) we have a list of idx of stars
-    '''
+    """
     global square_size
     grid = {}
 
@@ -44,9 +44,9 @@ def assign_to_grid(positions):
 
 
 def center_gravity(positions, mass):
-    '''
+    """
     Calculate the center of gravity of a set of stars.
-    '''
+    """
     total_mass = mass.sum()
     cx = np.sum(positions[:, 0] * mass) / total_mass
     cy = np.sum(positions[:, 1] * mass) / total_mass
@@ -55,15 +55,15 @@ def center_gravity(positions, mass):
 
 
 def calculate_acceleration(positions, mass):
-    '''
+    """
     Calculate the gravitational accelerations on each body due to all other bodies.
-    '''
+    """
     global radius
 
     n = len(positions)
     accelerations = np.zeros((n, 3))
 
-    # Calculer une seule fois
+    # Compute once
     grid = assign_to_grid(positions)
     cg, total_mass = center_gravity(positions, mass)
 
@@ -71,10 +71,10 @@ def calculate_acceleration(positions, mass):
         acc = np.zeros(3)
 
         for key, indices in grid.items():
-            # Distance entre centre de masse et la cellule
+            # Distance betwen center of mass and cell
             dist = distance.euclidean(cg, positions[i])
 
-            # Approximation Barnes-Hut
+            # Barnes-Hut approximation 
             if 0.5 * dist > radius :
                 diff = cg - positions[i]
                 d = np.linalg.norm(diff)
@@ -96,9 +96,9 @@ def calculate_acceleration(positions, mass):
 
 
 def step(dt):
-    '''
+    """
     Update the positions and velocities of all stars using the Verlet integration method.
-    '''
+    """
     global positions, velocity, mass
     acc = calculate_acceleration(positions, mass)
 
@@ -112,9 +112,9 @@ def step(dt):
 
 
 def load_galaxy(filename):
-    '''
+    """
     Load a system of stars from a file like (mass, positionx, positiony, positionz, velocityx, velocityy, velocityz)
-    '''
+    """
     positions, velocity, color, mass = [], [], [], []
 
     with open(filename, 'r') as file:
