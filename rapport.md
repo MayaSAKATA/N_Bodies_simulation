@@ -1,5 +1,6 @@
-# Projet Python : génération d'une galaxie
+# **Projet Python : génération d'une galaxie** <br><br> Maya Sakata, Coline Palefroy, Maelle Rouvray
 
+Ce projet vise à simuler une galaxie à N corps mis en mouvement par la gravité.  
 Pour exécuter les codes, on tape la commande : *python&nbsp;&nbsp;&nbsp;nom_du_fichier&nbsp;&nbsp;pas_de_temps&nbsp;&nbsp;taille_galaxie*.  
 Par défaut *pas_de_temps = 1e-2* et *taille_galaxie = 100*.
 
@@ -58,7 +59,20 @@ Pour 4 coeurs seulement, il y a déjà un réduction importante du temps de calc
 
 Lorsqu'on essaye différents pas de temps, on remarque que pour les pas de temps trop grands (0.1 par exemple), la simulation est instable. Certaines planètes sortent complètement de la galaxie par exemple. Pour des pas de temps plus petit, on obtient des résultats plus cohérents, les mouvements sont stables et les orbites plus réalistes. Cette différence s'explique par le fait que la méthode d'Euler est instable pour des pas de temps trop grand, l'erreur locale s'accumule à chaque itération ce qui rend la simulation fausse physiquement.
 
-## Quatrième version : Verlet et cas des étoiles lointaines
+## Quatrième veersion : Rung-Kutta ordre 4 (RK4)
+On essaye une version qui remplace la méthode d'Euler pour la mise à jour des vitesse et des positions par la méthode RK4.
+
+Temps de calcul et nombre de frame par seconde en fonction du nombre de corps :
+
+| Nombre de corps | 100 | 500 | 1000 | 2500 |
+| --- | --- | --- | --- | ---- |
+| Temps de calcul | 0.2588 s | 2.5102 s | 8.0517 s | 43.5475 s |
+| Nombre de frame par secondes | 15 | 3.3 | 1.2 | 0.22 |
+
+Les temps de calculs sont réduits par rapport à la version avec Euler, cependant cette méthode ne conserve pas l'énergie du système. Les étoiles peuvent donc parfois prendre des trajectoire inattendues.
+
+
+## Cinquième version : Verlet et cas des étoiles lointaines
 Dans cette version, on commence par remplacer la mise à jour des vitesses et des positions par la méthode d'intégration de Verlet qui rend la simulation plus stable et précise tout en conservant l'énergie ce qui n'était pas le cas du schéma précédent qui était de type Euler.
 
 Puis pour rendre plus rapide les calculs d'accélération, on décide d'une règle de calcul si une étoile est trop éloigné de l'étoile qu'on étudie (approximation de Barnes-Hut). Pour cela, on crée une grille et on assigne chaque étoile au morceau de la grille auquelle elle appartient, puis pour chaque cellule de la grille, on calcule son centre de gravité. L'idée de cette règle est de remplacer une étoile par le groupe d'étoile auquelle elle appartient. Le critère exact est *si 0.5 * dist > radius* , (avec *dist* la distance euclidienne entre l'étoile étudié et le centre de gravité et *radius* le rayon d'une cellule) alors on calcule l'accélération par rapport au centre de gravité de la cellule concernée. Si le critère n'est pas satisfait alors on calcule l'accélération comme dans les versions précédentes. En faisant cela, on réduit fortement la complexité de la fonction *calculate_accelerations* car chaque étoile n'interagit plus avec chacune des autres étoiles. 
@@ -72,7 +86,7 @@ Temps de calcul et nombre de frame par seconde en fonction du nombre de corps :
 
 On remarque que les temps de calcul sont très élevés et proche de ceux trouvés avec la première version. Pour améliorer cela, on va ajouter numba. 
 
-## Cinquième version : Barnes-Hut
+## Sixième version : Barnes-Hut
 Dans cette version, on ajoute numba pour accélérer le programme précédent. Cependant, numba ne comprend pas certains types comme les dictionnaires qui ont été utilisés pour assigner chaque étoiles à une cellule de la grille. On crée donc une nouvelle fonction basée sur une matrice CRS qui crée deux listes : la première contient l'indice où commencent les étoiles d'une cellule de la grille, pour chaque cellule ; la seconde contient la liste des indices des étoiles triées par ordre de cellule.
 
 Temps de calcul et nombre de frame par seconde en fonction du nombre de corps :
