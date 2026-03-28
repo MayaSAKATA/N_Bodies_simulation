@@ -7,29 +7,26 @@ import sys
 
 G = 1.560339e-13  # Gravitationnal constant
 
+
 def initialize_grid(positions):
-    """
+    '''
     Initialize the global variable square_size and radius of the square
-    """
+    '''
     global square_size, radius
     size_x = positions[:, 0].max() - positions[:, 0].min()
     size_y = positions[:, 1].max() - positions[:, 1].min()
     size_z = positions[:, 2].max() - positions[:, 2].min()
 
-    dx = size_x / 20
-    dy = size_y / 20
-    dz = size_z / 20
-
-    square_size = np.array([dx, dy, dz]) * 1.05 # Add a 5% margin to ensure stars on the edge stay within bounds
-    radius = np.sqrt(dx**2 + dy**2 + dz**2)
+    square_size = np.array([size_x, size_y, size_z]) * 1.05 / 20
+    radius = np.sqrt(size_x**2 + size_y**2 + size_z**2)
     return square_size, radius
 
 
 def assign_to_grid(positions):
-    """
+    '''
     Assign each star to a grid square : grid = {(grid_x, grid_y): [index1, index2, ...}
     For each square coordinates (grid_x, grid_y) we have a list of idx of stars
-    """
+    '''
     global square_size
     grid = {}
 
@@ -47,9 +44,9 @@ def assign_to_grid(positions):
 
 
 def center_gravity(positions, mass):
-    """
+    '''
     Calculate the center of gravity of a set of stars.
-    """
+    '''
     total_mass = mass.sum()
     cx = np.sum(positions[:, 0] * mass) / total_mass
     cy = np.sum(positions[:, 1] * mass) / total_mass
@@ -58,35 +55,34 @@ def center_gravity(positions, mass):
 
 
 def calculate_acceleration(positions, mass):
-    """
+    '''
     Calculate the gravitational accelerations on each body due to all other bodies.
-    """
+    '''
     global radius
 
     n = len(positions)
     accelerations = np.zeros((n, 3))
-    grid = assign_to_grid(positions)
 
-    # Calculate each cell data once
-    cell_data = {}
-    for key, indices in grid.items():
-        cg, total_mass = center_gravity(positions[indices], mass[indices])
-        cell_data[key] = (cg, total_mass)
+    # Calculer une seule fois
+    grid = assign_to_grid(positions)
+    cg, total_mass = center_gravity(positions, mass)
 
     for i in range(n):
         acc = np.zeros(3)
-        pos_i = positions[i]
 
-        for key, (cg_cell, m_cell) in cell_data.items():
-            diff = cg_cell - pos_i
-            dist = np.linalg.norm(diff)
+        for key, indices in grid.items():
+            # Distance entre centre de masse et la cellule
+            dist = distance.euclidean(cg, positions[i])
 
-            if dist < 1e-10:
-                  continue
+            # Approximation Barnes-Hut
             if 0.5 * dist > radius :
-                acc += G * m_cell * diff / (dist**3)
+                diff = cg - positions[i]
+                d = np.linalg.norm(diff)
+                if d > 1e-10:
+                    acc += G * total_mass * diff / (d**3)
+
             else:
-                for j in grid[key]:
+                for j in indices:
                     if i == j:
                         continue
                     diff = positions[j] - positions[i]
@@ -100,9 +96,9 @@ def calculate_acceleration(positions, mass):
 
 
 def step(dt):
-    """
+    '''
     Update the positions and velocities of all stars using the Verlet integration method.
-    """
+    '''
     global positions, velocity, mass
     acc = calculate_acceleration(positions, mass)
 
@@ -116,9 +112,9 @@ def step(dt):
 
 
 def load_galaxy(filename):
-    """
+    '''
     Load a system of stars from a file like (mass, positionx, positiony, positionz, velocityx, velocityy, velocityz)
-    """
+    '''
     positions, velocity, color, mass = [], [], [], []
 
     with open(filename, 'r') as file:
