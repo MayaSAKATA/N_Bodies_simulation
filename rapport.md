@@ -68,7 +68,7 @@ Pour 4 coeurs seulement, il y a déjà une réduction importante du temps de cal
 
 Lorsqu'on essaye différents pas de temps, on remarque que pour les pas de temps trop grands (0.1 par exemple), la simulation est instable (certaines planètes sortent complètement de la galaxie). Pour des pas de temps plus petits, on obtient des résultats plus cohérents : les mouvements sont stables et les orbites plus réalistes. Cette différence s'explique par le fait que la méthode d'Euler est instable pour des pas de temps trop grand, l'erreur locale s'accumule à chaque itération ce qui rend la simulation fausse physiquement.
 
-## Quatrième veersion : Rung-Kutta ordre 4 (RK4)
+## Quatrième version : Runge-Kutta ordre 4 (RK4)
 
 On essaye une version qui remplace la méthode d'Euler pour la mise à jour des vitesse et des positions par la méthode RK4.
 
@@ -77,11 +77,11 @@ Temps de calcul et nombre de frame par seconde en fonction du nombre de corps :
 | Nombre de corps | 100 | 500 | 1000 | 2500 |
 | --- | --- | --- | --- | ---- |
 | Temps de calcul | 0.26 s | 2.48 s | 8.11 s | 43.24 s |
-| Nombre de frame par secondes | 36.5 | 3.8 | 1.2 | 0.22 |
+| Nombre de frame par secondes | 36.5 | 3.8 | 1.2 | 0.2 |
 
 Les temps de calculs sont réduits par rapport à la version avec Euler, cependant cette méthode ne conserve pas l'énergie du système. Les étoiles peuvent donc parfois prendre des trajectoire inattendues.
 
-## Cinquième version : Verlet et cas des étoiles lointaines
+## Cinquième version : Verlet x Barnes-Hut avec des dictionnaires
 
 Dans cette version, on commence par remplacer la mise à jour des vitesses et des positions par la méthode d'intégration de Verlet qui rend la simulation plus stable et précise tout en conservant l'énergie ce qui n'était pas le cas du schéma précédent qui était de type Euler.
 
@@ -97,9 +97,9 @@ Temps de calcul et nombre de frame par seconde en fonction du nombre de corps :
 
 On remarque que les temps de calcul sont très élevés et proche de ceux trouvés avec la première version. Pour améliorer cela, on va ajouter numba.
 
-## Sixième et dernière version : Barnes-Hut
+## Sixième et dernière version : Verlet x Barnes-Hut avec matrice CSR
 
-Dans cette version, on ajoute numba pour accélérer le programme précédent. Cependant, numba ne comprend pas certains types comme les dictionnaires qui ont été utilisés pour assigner chaque étoile à une cellule de la grille. On crée donc une nouvelle fonction basée sur une matrice CRS qui crée deux listes : la première contient l'indice où commencent les étoiles d'une cellule de la grille, pour chaque cellule ; la seconde contient la liste des indices des étoiles triées par ordre de cellule.
+Dans cette version, on ajoute numba pour accélérer le programme précédent. Cependant, numba ne comprend pas certains types comme les dictionnaires qui ont été utilisés pour assigner chaque étoile à une cellule de la grille. On crée donc une nouvelle fonction basée sur une matrice CSR qui crée deux listes : la première contient l'indice où commencent les étoiles d'une cellule de la grille, pour chaque cellule ; la seconde contient la liste des indices des étoiles triées par ordre de cellule.
 
 Temps de calcul et nombre de frame par seconde en fonction du nombre de corps :
 
